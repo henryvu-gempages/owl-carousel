@@ -341,48 +341,33 @@
                 // Switch to only using appended clones
                 clones.push(this.normalize(clones.length / 2, true));
                 let itemOuterHtml = items[clones[clones.length - 1]][0].outerHTML;
-
                 const $temp = $(itemOuterHtml);
                 const $listModule = $temp.find('.module-wrap');
-                const listModuleSize = $listModule.length;
+                const outerHtml = this.changeIdCloneItem($temp, $listModule);
 
-                for(let i = 0; i < listModuleSize; i++) {
-                    const $module = $($listModule[i]);
-                    const dataKey = $module.attr('data-key');
-                    if(dataKey) {
-                        const itemEdit = $temp.find('.module-wrap').get(0);
-                        // Make uuid unique
-                        let dt = new Date().getTime();
-                        const uuid = 'clone-xxxxxxxx'.replace(/[xy]/g, function(c) {
-                            const r = (dt + Math.random()*16)%16 | 0;
-                            dt = Math.floor(dt/16);
-                            return (c=='x' ? r :(r&0x3|0x8)).toString(16);
-                        });
-                        // Change id & data-id of module
-                        itemEdit.setAttribute('id', uuid);
-                        itemEdit.setAttribute('data-id', uuid);
-                        itemOuterHtml = $temp[0].outerHTML;
-                    }
+                if(outerHtml) {
+                    itemOuterHtml = outerHtml;
                 }
 
                 append = append + itemOuterHtml;
                 clones.push(this.normalize(items.length - 1 - (clones.length - 1) / 2, true));
+
+                // Chạy lại để gen id mới
+                const outerHtml2 = this.changeIdCloneItem($temp, $listModule);
+                if(outerHtml2) {
+                    itemOuterHtml = outerHtml2;
+                }
+
                 prepend = itemOuterHtml + prepend;
                 repeat -= 1;
             }
 
             this._clones = clones;
 
-            console.log('stage raw:', prepend);
-
             const $appendClone = $(append).addClass('cloned');
             const $prependClone = $(prepend).addClass('cloned');
             $appendClone.appendTo(this.$stage);
             $prependClone.prependTo(this.$stage);
-
-            console.log('stage1:', this.$stage);
-            console.log('stage2:', $appendClone);
-            console.log('stage3:', $prependClone);
         }
     }, {
         filter: [ 'width', 'items', 'settings' ],
@@ -623,6 +608,39 @@
         this.invalidate('settings');
         this.trigger('changed', { property: { name: 'settings', value: this.settings } });
     };
+
+    Owl.prototype.changeIdCloneItem = function($temp, $listModule) {
+        const listModuleSize = $listModule.length;
+        let itemOuterHtml;
+        for(let i = 0; i < listModuleSize; i++) {
+            const $module = $($listModule[i]);
+            const dataKey = $module.attr('data-key');
+            if(dataKey) {
+                const itemEdit = $temp.find('.module-wrap').get(0);
+                // Make uuid unique
+                let dt = new Date().getTime();
+                const uuid = 'clone-xxxxxxxx'.replace(/[xy]/g, function(c) {
+                    const r = (dt + Math.random()*16)%16 | 0;
+                    dt = Math.floor(dt/16);
+                    return (c=='x' ? r :(r&0x3|0x8)).toString(16);
+                });
+                // Change id & data-id of module
+                if(!window.carouselModuleItems) {
+                    window.carouselModuleItems = [];
+                }
+
+                if(!window.carouselModuleItems[dataKey]) {
+                    window.carouselModuleItems[dataKey] = [];
+                }
+
+                window.carouselModuleItems[dataKey].push(uuid);
+                itemEdit.setAttribute('id', uuid);
+                itemEdit.setAttribute('data-id', uuid);
+                itemOuterHtml = $temp[0].outerHTML;
+            }
+        }
+        return itemOuterHtml;
+    }
 
     /**
      * Updates option logic if necessery.
